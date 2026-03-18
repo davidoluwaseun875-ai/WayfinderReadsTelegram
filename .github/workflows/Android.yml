@@ -1,0 +1,59 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1️⃣ Checkout repo
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # 2️⃣ Setup Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 24
+
+      # 3️⃣ Install dependencies
+      - name: Install dependencies
+        run: |
+          echo "Installing dependencies..."
+          npm install || { echo 'Dependency installation failed!' ; exit 1; }
+
+      # 4️⃣ Build React (or web) part if using Capacitor
+      - name: Build React web
+        run: |
+          echo "Building React app..."
+          npm run build || { echo 'React build failed!' ; exit 1; }
+
+      # 5️⃣ Sync Capacitor to Android
+      - name: Sync Capacitor
+        run: |
+          npx cap sync android || { echo 'Capacitor sync failed!' ; exit 1; }
+
+      # 6️⃣ Build APK
+      - name: Build Android APK
+        run: |
+          echo "Building APK..."
+          cd android || { echo 'Android folder not found!' ; exit 1; }
+          ./gradlew assembleDebug || { echo 'Gradle build failed!' ; exit 1; }
+          VERSION_CODE=$(grep versionCode app/build.gradle | awk '{print $2}')
+          VERSION_NAME=$(grep versionName app/build.gradle | awk '{print $2}' | tr -d '"')
+          echo "APK version: $VERSION_NAME ($VERSION_CODE)"
+          cp app/build/outputs/apk/debug/app-debug.apk ../../app-debug-v$VERSION_NAME.apk || { echo 'Failed to copy APK!' ; exit 1; }
+
+      # 7️⃣ Upload APK artifact
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: app-debug-v*.apk
