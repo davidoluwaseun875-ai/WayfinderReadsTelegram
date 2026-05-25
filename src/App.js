@@ -99,6 +99,21 @@ const videoSources = [
 
 
 
+useEffect(() => {
+    const tg = window.Telegram?.WebApp;
+
+    if (tg) {
+      tg.ready();
+      tg.expand();
+
+      console.log("Telegram Mini App initialized");
+      console.log(tg.initDataUnsafe);
+    }
+  }, []);
+
+
+
+
     const handleRead = (iframeId) => {
         setFullscreenIframe(iframeId);
     };
